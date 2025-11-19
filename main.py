@@ -9,17 +9,14 @@ from rich.table import Table
 from rich.panel import Panel
 import streamlit as st
 
-# ============================================================
-# 🔑 CONFIGURE GEMINI API
-# ============================================================
+
+#  CONFIGURE GEMINI API
 API_KEY = "API_KEY"  # Replace with your Gemini API key
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("gemini-2.5-pro")
 console = Console()
 
-# ============================================================
-# 📄 DATA MODEL
-# ============================================================
+#  DATA MODEL
 class ExtractedInfo(BaseModel):
     profile: str = Field(default="Not specified")
     technical_skills: str = Field(default="Not specified")
@@ -31,9 +28,8 @@ class ExtractedInfo(BaseModel):
     projects: str = Field(default="Not specified")
     contact_info: str = Field(default="Not specified")
 
-# ============================================================
-# 🧠 TEXT EXTRACTION
-# ============================================================
+#  TEXT EXTRACTION
+
 def extract_text_from_pdf(pdf_path: str) -> str:
     with fitz.open(pdf_path) as doc:
         text = "\n".join(page.get_text("text") for page in doc)
@@ -45,9 +41,7 @@ def normalize_text(text: str) -> str:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     return "\n".join(lines)
 
-# ============================================================
-# 🔍 LOGICAL CV INFORMATION EXTRACTION
-# ============================================================
+#  LOGICAL CV INFORMATION EXTRACTION
 def extract_cv_info(text: str) -> ExtractedInfo:
     info = ExtractedInfo()
 
@@ -88,9 +82,7 @@ def extract_cv_info(text: str) -> ExtractedInfo:
 
     return info
 
-# ============================================================
-# 🤖 COMPANY PREDICTION USING GEMINI (10 COMPANIES)
-# ============================================================
+# COMPANY PREDICTION USING GEMINI (10 COMPANIES)
 def llm_predict_companies(extracted_info: ExtractedInfo):
     prompt = f"""
     You are an expert HR AI system.
@@ -134,9 +126,7 @@ def llm_predict_companies(extracted_info: ExtractedInfo):
         return [{"company_name": "Error", "industry": "Error", "reason": "Failed to parse response",
                  "email": "N/A", "website": "N/A", "location": "N/A"}]
 
-# ============================================================
-# 🧾 CLI INTERFACE
-# ============================================================
+#  CLI INTERFACE
 def read_pdf(source_pdf_path: str):
     console.print(f"[bold cyan]📄 Reading CV: {source_pdf_path}[/bold cyan]\n")
     if not os.path.exists(source_pdf_path):
@@ -162,9 +152,7 @@ def read_pdf(source_pdf_path: str):
     result = llm_predict_companies(extracted)
     console.print(Panel.fit(json.dumps(result, indent=2, ensure_ascii=False), title="🏢 Suggested Companies"))
 
-# ============================================================
-# 🌐 STREAMLIT INTERFACE
-# ============================================================
+#  STREAMLIT INTERFACE
 def run_streamlit():
     st.set_page_config(page_title="AI CV Analyzer", layout="wide")
     st.title("📄 AI CV Analyzer & Company Matcher")
@@ -214,9 +202,7 @@ def run_streamlit():
         if os.path.exists(pdf_path):
             os.remove(pdf_path)
 
-# ============================================================
-# 🚀 MAIN EXECUTION
-# ============================================================
+# MAIN EXECUTION
 if __name__ == "__main__":
     MODE = "STREAMLIT"  # "CLI" or "STREAMLIT"
     if MODE == "CLI":
