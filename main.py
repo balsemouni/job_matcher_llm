@@ -12,7 +12,7 @@ import streamlit as st
 # ============================================================
 # 🔑 CONFIGURE GEMINI API
 # ============================================================
-API_KEY = "AIzaSyBvj32GO0b_CuUtmLUuXjIm0PIJIJWGAh8"  # Replace with your Gemini API key
+API_KEY = "API_KEY"  # Replace with your Gemini API key
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("gemini-2.5-pro")
 console = Console()
