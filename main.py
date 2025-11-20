@@ -4,21 +4,14 @@ import re
 import json
 from pydantic import BaseModel, Field
 import google.generativeai as genai
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
 import streamlit as st
 
-#   Gemini API Setup
-API_KEY = "AIzaSyBvj32GO0b_CuUtmLUuXjIm0PIJIJWGAh8"
+# ===================== GEMINI API SETUP =====================
+API_KEY = "5555555555555555555555555"  # Replace with your API key
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("gemini-2.5-pro")
-console = Console()
 
-
-# ============================================================
-#               ORIGINAL DATA MODEL (UNCHANGED)
-# ============================================================
+# ===================== DATA MODEL =====================
 class ExtractedInfo(BaseModel):
     profile: str = Field(default="Not specified")
     technical_skills: str = Field(default="Not specified")
@@ -30,15 +23,11 @@ class ExtractedInfo(BaseModel):
     projects: str = Field(default="Not specified")
     contact_info: str = Field(default="Not specified")
 
-
-# ============================================================
-#                    TEXT EXTRACTION
-# ============================================================
+# ===================== PDF TEXT EXTRACTION =====================
 def extract_text_from_pdf(pdf_path: str) -> str:
     with fitz.open(pdf_path) as doc:
         text = "\n".join(page.get_text("text") for page in doc)
     return text
-
 
 def normalize_text(text: str) -> str:
     text = re.sub(r"[ \t]+", " ", text)
@@ -46,34 +35,34 @@ def normalize_text(text: str) -> str:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     return "\n".join(lines)
 
-
-# ============================================================
-#                    CV INFO EXTRACTION
-# ============================================================
+# ===================== CV INFO EXTRACTION =====================
 def extract_cv_info(text: str) -> ExtractedInfo:
     info = ExtractedInfo()
 
     section_keywords = {
-        "profile": ["Profile", "Summary", "About Me", "Objective", "Professional Summary"],
-        "technical_skills": ["Technical Skills", "Skills", "Core Competencies", "Technical Expertise"],
-        "soft_skills": ["Soft Skills", "Interpersonal Skills", "Communication Skills"],
-        "education": ["Education", "Academic Background", "Degrees", "Studies"],
-        "experience": ["Experience", "Work Experience", "Career History", "Employment", "Professional Experience"],
-        "languages": ["Languages", "Language Proficiency", "Spoken Languages"],
-        "certifications": ["Certifications", "Certificates", "Courses & Training"],
-        "projects": ["Projects", "Academic Projects", "Portfolio", "Achievements"],
+        "profile": ["Profile", "Summary", "About Me", "Objective", "Professional Summary", "Profil"],
+        "technical_skills": ["Technical Skills", "Skills", "Core Competencies", "Technical Expertise", "Compétences", "Compétences Techniques", "Compétences Automobile"],
+        "soft_skills": ["Soft Skills", "Interpersonal Skills", "Communication Skills", "Compétences Douces", "Compétences Interpersonnelles"],
+        "education": ["Education", "Academic Background", "Degrees", "Studies", "Formation", "Diplômes"],
+        "experience": ["Experience", "Work Experience", "Career History", "Employment", "Professional Experience", "Expérience Professionnelle", "Historique Professionnel"],
+        "languages": ["Languages", "Language Proficiency", "Spoken Languages", "Langues", "Langue"],
+        "certifications": ["Certifications", "Certificates", "Courses & Training", "Certifications", "Cours"],
+        "projects": ["Projects", "Academic Projects", "Portfolio", "Achievements", "Projets", "Réalisations"],
     }
 
-    # Contact info
+    # Extract contact info
     emails = re.findall(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", text)
     phones = re.findall(r"(\+?\d[\d\s().-]{8,}\d)", text)
     info.contact_info = f"Email: {emails[0] if emails else 'Not found'}, Phone: {phones[0] if phones else 'Not found'}"
 
+    # Prepare regex for section headers
     all_section_titles = [re.escape(k) for names in section_keywords.values() for k in names]
-    combined_pattern = r"(?i)^(" + "|".join(all_section_titles) + r")\b"
-    matches = [(m.start(), m.group().strip()) for m in re.finditer(combined_pattern, text, flags=re.MULTILINE)]
+    combined_pattern = r"(?im)^\s*(" + "|".join(all_section_titles) + r")\b"
+
+    matches = [(m.start(), m.group().strip()) for m in re.finditer(combined_pattern, text)]
     matches.append((len(text), "END"))
 
+    # Extract content for each section
     for i in range(len(matches) - 1):
         start_pos, section_title = matches[i]
         end_pos, _ = matches[i + 1]
@@ -81,7 +70,7 @@ def extract_cv_info(text: str) -> ExtractedInfo:
 
         for field, names in section_keywords.items():
             if any(section_title.lower().startswith(n.lower()) for n in names):
-                clean = re.sub(rf"(?i)^{section_title}\s*[:\-]*", "", content).strip()
+                clean = re.sub(rf"(?i)^{re.escape(section_title)}\s*[:\-]*", "", content).strip()
                 clean = re.sub(r"\s+", " ", clean)
                 clean = clean[:1000] + "..." if len(clean) > 1000 else clean
                 setattr(info, field, clean)
@@ -89,10 +78,7 @@ def extract_cv_info(text: str) -> ExtractedInfo:
 
     return info
 
-
-# ============================================================
-#     NEW: HARSH JOB MATCHING — IMPROVED PROMPT ENGINEERING
-# ============================================================
+# ===================== JOB MATCHING =====================
 def analyze_cv_for_job(cv_text: str, job_description: str):
     prompt = f"""
 You are an **unfiltered senior HR evaluator**. Your tone must be strict, direct, and brutally honest.
@@ -127,19 +113,14 @@ CV:
 JOB DESCRIPTION:
 {job_description}
 """
-
     try:
         response = model.generate_content(prompt)
         text = response.text.strip()
-
-        # remove accidental markdown wrapping
         if text.startswith("```json"):
             text = text[7:-3].strip()
         elif text.startswith("```"):
             text = text[3:-3].strip()
-
         return json.loads(text)
-
     except:
         return {
             "score": 0,
@@ -148,33 +129,25 @@ JOB DESCRIPTION:
             "profile_summary": "N/A"
         }
 
-
-# ============================================================
-#                 COMPANY PREDICTION (UNCHANGED)
-# ============================================================
+# ===================== COMPANY PREDICTION =====================
 def llm_predict_companies(extracted_info: ExtractedInfo):
     prompt = f"""
-    Suggest 10 companies that could hire this candidate.
-    Return JSON array ONLY.
+Suggest 10 companies that could hire this candidate.
+Return JSON array ONLY.
 
-    Candidate Info:
-    {json.dumps(extracted_info.model_dump(), indent=2)}
-    """
+Candidate Info:
+{json.dumps(extracted_info.model_dump(), indent=2)}
+"""
     try:
         response = model.generate_content(prompt)
         text = response.text.strip()
-
         if text.startswith("```json"):
             text = text[7:-3]
-
         return json.loads(text)[:10]
     except:
         return [{"company_name": "Error", "reason": "Parsing Failed"}]
 
-
-# ============================================================
-#                       STREAMLIT UI
-# ============================================================
+# ===================== STREAMLIT UI =====================
 def run_streamlit():
     st.set_page_config(page_title="AI CV Analyzer", layout="wide")
     st.title("📄 AI CV Analyzer + Job Matching")
@@ -201,23 +174,18 @@ def run_streamlit():
         # RIGHT: job matching
         with col2:
             st.subheader("🎯 Job Match Analysis")
-
             job = st.text_area("Paste Job Description")
 
             if st.button("Analyze Job Fit"):
                 with st.spinner("Analyzing..."):
                     result = analyze_cv_for_job(text, job)
-
                 st.success(f"Score: {result['score']} / 100")
-
                 st.write("### Missing Skills")
                 for skill in result["missing_skills"]:
                     st.error(f"- {skill}")
-
                 st.write("### Improvements")
                 for imp in result["improvements"]:
                     st.warning(f"- {imp}")
-
                 st.write("### Profile Summary")
                 st.info(result["profile_summary"])
 
@@ -225,7 +193,6 @@ def run_streamlit():
             if st.button("Find Companies"):
                 with st.spinner("Generating suggestions..."):
                     companies = llm_predict_companies(extracted)
-
                 for c in companies:
                     st.write(f"### {c.get('company_name', 'N/A')}")
                     st.write(c)
@@ -233,9 +200,6 @@ def run_streamlit():
 
         os.remove(pdf_path)
 
-
-# ============================================================
-#                        MAIN
-# ============================================================
+# ===================== MAIN =====================
 if __name__ == "__main__":
     run_streamlit()
