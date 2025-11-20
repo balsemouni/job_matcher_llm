@@ -6,12 +6,22 @@ from pydantic import BaseModel, Field
 import google.generativeai as genai
 import streamlit as st
 
+<<<<<<< HEAD
 # ===================== GEMINI API SETUP =====================
 API_KEY = "5555555555555555555555555"  # Replace with your API key
+=======
+
+#  CONFIGURE GEMINI API
+API_KEY = "API_KEY"  # Replace with your Gemini API key
+>>>>>>> cfe189907817f2c0b40337b0758df6ae9064f4b1
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("gemini-2.5-pro")
 
+<<<<<<< HEAD
 # ===================== DATA MODEL =====================
+=======
+#  DATA MODEL
+>>>>>>> cfe189907817f2c0b40337b0758df6ae9064f4b1
 class ExtractedInfo(BaseModel):
     profile: str = Field(default="Not specified")
     technical_skills: str = Field(default="Not specified")
@@ -23,7 +33,12 @@ class ExtractedInfo(BaseModel):
     projects: str = Field(default="Not specified")
     contact_info: str = Field(default="Not specified")
 
+<<<<<<< HEAD
 # ===================== PDF TEXT EXTRACTION =====================
+=======
+#  TEXT EXTRACTION
+
+>>>>>>> cfe189907817f2c0b40337b0758df6ae9064f4b1
 def extract_text_from_pdf(pdf_path: str) -> str:
     with fitz.open(pdf_path) as doc:
         text = "\n".join(page.get_text("text") for page in doc)
@@ -35,7 +50,11 @@ def normalize_text(text: str) -> str:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     return "\n".join(lines)
 
+<<<<<<< HEAD
 # ===================== CV INFO EXTRACTION =====================
+=======
+#  LOGICAL CV INFORMATION EXTRACTION
+>>>>>>> cfe189907817f2c0b40337b0758df6ae9064f4b1
 def extract_cv_info(text: str) -> ExtractedInfo:
     info = ExtractedInfo()
 
@@ -78,8 +97,13 @@ def extract_cv_info(text: str) -> ExtractedInfo:
 
     return info
 
+<<<<<<< HEAD
 # ===================== JOB MATCHING =====================
 def analyze_cv_for_job(cv_text: str, job_description: str):
+=======
+# COMPANY PREDICTION USING GEMINI (10 COMPANIES)
+def llm_predict_companies(extracted_info: ExtractedInfo):
+>>>>>>> cfe189907817f2c0b40337b0758df6ae9064f4b1
     prompt = f"""
 You are an **unfiltered senior HR evaluator**. Your tone must be strict, direct, and brutally honest.
 NO sugarcoating, NO politeness, NO compliments.
@@ -147,7 +171,37 @@ Candidate Info:
     except:
         return [{"company_name": "Error", "reason": "Parsing Failed"}]
 
+<<<<<<< HEAD
 # ===================== STREAMLIT UI =====================
+=======
+#  CLI INTERFACE
+def read_pdf(source_pdf_path: str):
+    console.print(f"[bold cyan]📄 Reading CV: {source_pdf_path}[/bold cyan]\n")
+    if not os.path.exists(source_pdf_path):
+        console.print(f"[red]⚠️ File not found: {source_pdf_path}[/red]")
+        return
+
+    text = extract_text_from_pdf(source_pdf_path)
+    normalized = normalize_text(text)
+    console.print(Panel.fit(normalized[:600] + "...", title="📝 Normalized Text Sample"))
+
+    extracted = extract_cv_info(normalized)
+
+    table = Table(title="🧠 Extracted CV Information", show_lines=True)
+    table.add_column("Field", style="bold green")
+    table.add_column("Value", style="white")
+
+    for key, val in extracted.model_dump().items():
+        display_val = val[:200] + "..." if len(val) > 200 else val
+        table.add_row(key.replace("_", " ").title(), display_val)
+    console.print(table)
+
+    console.print("\n🤖 [bold yellow]Predicting suitable companies...[/bold yellow]\n")
+    result = llm_predict_companies(extracted)
+    console.print(Panel.fit(json.dumps(result, indent=2, ensure_ascii=False), title="🏢 Suggested Companies"))
+
+#  STREAMLIT INTERFACE
+>>>>>>> cfe189907817f2c0b40337b0758df6ae9064f4b1
 def run_streamlit():
     st.set_page_config(page_title="AI CV Analyzer", layout="wide")
     st.title("📄 AI CV Analyzer + Job Matching")
@@ -200,6 +254,13 @@ def run_streamlit():
 
         os.remove(pdf_path)
 
+<<<<<<< HEAD
 # ===================== MAIN =====================
+=======
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+# MAIN EXECUTION
+>>>>>>> cfe189907817f2c0b40337b0758df6ae9064f4b1
 if __name__ == "__main__":
     run_streamlit()
